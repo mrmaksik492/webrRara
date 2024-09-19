@@ -1,0 +1,88 @@
+#menu-container {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+}
+#menu-button {
+    padding: 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    border-radius: 5px;
+}
+#menu-options {
+    display: none;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 5px;
+    position: absolute;
+}
+#menu-options button {
+    display: block;
+    margin-bottom: 5px;
+    width: 150px;
+    padding: 5px;
+    cursor: pointer;
+}
+
+
+
+<div id="menu-container">
+    <div id="menu-button">Seleccionar Estilo ▼</div>
+    <div id="menu-options">
+        <button onclick="applyStyle(1)">Estilo 1: Gris/Blanco</button>
+        <button onclick="applyStyle(2)">Estilo 2: Actual</button>
+        <button onclick="applyStyle(3)">Estilo 3: Blanco/Negro</button>
+    </div>
+</div>
+
+
+// Mostrar menú al hacer clic en el botón
+        document.getElementById('menu-button').addEventListener('click', function() {
+            const menu = document.getElementById('menu-options');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        });
+
+        // Ocultar el menú cuando el ratón salga del contenedor
+        document.getElementById('menu-container').addEventListener('mouseleave', function() {
+            document.getElementById('menu-options').style.display = 'none';
+        });
+
+        function applyStyle(style) {
+            const body = document.body;
+            const inputs = document.querySelectorAll('input, button');
+            
+            if (style === 1) {
+                // Estilo 1: Fondo gris, texto y bordes blancos
+                body.style.backgroundColor = '#333';
+                body.style.color = '#fff';
+                inputs.forEach(input => {
+                    input.style.backgroundColor = '#333';
+                    input.style.color = '#fff';
+                    input.style.borderColor = '#fff';
+                });
+            } else if (style === 2) {
+                // Estilo 2: El estilo actual (por defecto)
+                body.style.backgroundColor = '#fff';
+                body.style.color = '#000';
+                inputs.forEach(input => {
+                    input.style.backgroundColor = '#fff';
+                    input.style.color = '#000';
+                    input.style.borderColor = '#ddd';
+                });
+            } else if (style === 3) {
+                // Estilo 3: Fondo blanco, texto y bordes negros
+                body.style.backgroundColor = '#fff';
+                body.style.color = '#000';
+                inputs.forEach(input => {
+                    input.style.backgroundColor = '#fff';
+                    input.style.color = '#000';
+                    input.style.borderColor = '#000';
+                });
+            }
+
+            // Ocultar el menú después de seleccionar un estilo
+            document.getElementById('menu-options').style.display = 'none';
+        }
