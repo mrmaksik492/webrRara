@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Local con Autenticación y Cooldown</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        #auth, #chat { max-width: 600px; margin: 0 auto; }
+        #messages { height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
+        input, button { width: 100%; padding: 5px; margin-bottom: 10px; }
+        #user-display {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #f0f0f0;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        #cooldown-message {
+            color: red;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div id="user-display" style="display: none;"></div>
+
+    <div id="auth">
+        <h2>Iniciar sesión o Registrarse</h2>
+        <input type="text" id="username" placeholder="Nombre de usuario">
+        <input type="password" id="password" placeholder="Contraseña">
+        <button onclick="login()">Iniciar sesión</button>
+        <button onclick="register()">Registrarse</button>
+    </div>
+
+    <div id="chat" style="display: none;">
+        <h2>Chat</h2>
+        <div id="messages"></div>
+        <input type="text" id="m" placeholder="Escribe un mensaje">
+        <button onclick="sendMessage()">Enviar</button>
+        <p id="cooldown-message" style="display: none;">Espera 5 segundos antes de enviar otro mensaje.</p>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket;
+        let currentUsername;
+        let canSendMessage = true;
+        let cooldownTimer;
+
+        function checkSession() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (sessionId) {
+                fetch('/checkSession', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.valid) {
+                        showChat(data.username);
+                    }
+                });
+            }
+        }
+
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.sessionId) {
+                    localStorage.setItem('sessionId', data.sessionId);
+                    showChat(username);
+                } else {
+                    alert('Error de inicio de sesión');
+                }
+            });
+        }
+
+        function register() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            fetch('/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Registro exitoso. Por favor, inicia sesión.');
+                } else {
+                    alert('Error en el registro');
+                }
+            });
+        }
+
+        function showChat(username) {
+            document.getElementById('auth').style.display = 'none';
+            document.getElementById('chat').style.display = 'block';
+            currentUsername = username;
+            displayUsername(username);
+            initSocket();
+        }
+
+        function displayUsername(username) {
+            const userDisplay = document.getElementById('user-display');
+            userDisplay.textContent = username;
+            userDisplay.style.display = 'block';
+        }
+
+        function initSocket() {
+            socket = io();
+
+            socket.on('initial messages', (msgs) => {
+                msgs.forEach(addMessage);
+            });
+
+            socket.on('chat message', (msg) => {
+                addMessage(msg);
+            });
+        }
+
+        function addMessage(msg) {
+            const messages = document.getElementById('messages');
+            const item = document.createElement('p');
+            item.textContent = `${msg.user}: ${msg.message}`;
+            messages.appendChild(item);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function sendMessage() {
+            const m = document.getElementById('m');
+            if (m.value && canSendMessage) {
+                socket.emit('chat message', { user: currentUsername, message: m.value });
+                m.value = '';
+                startCooldown();
+            }
+        }
+
+        function startCooldown() {
+            canSendMessage = false;
+            document.getElementById('cooldown-message').style.display = 'block';
+            cooldownTimer = setTimeout(() => {
+                canSendMessage = true;
+                document.getElementById('cooldown-message').style.display = 'none';
+            }, 5000);
+        }
+
+        document.getElementById('m').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        checkSession();
+    </script>
+</body>
+</html>
